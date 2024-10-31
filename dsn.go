@@ -379,10 +379,20 @@ func ParseDSN(dsn string) (cfg *Config, err error) {
 					if dsn[j] == '@' {
 						// username[:password]
 						// Find the first ':' in dsn[:j]
-						for k = 0; k < j; k++ {
-							if dsn[k] == ':' {
-								cfg.Passwd = dsn[k+1 : j]
-								break
+						if !allowUsernameWithColon() {
+							for k = 0; k < j; k++ {
+								if dsn[k] == ':' {
+									cfg.Passwd = dsn[k+1 : j]
+									break
+								}
+							}
+						} else {
+							// Find the last ':' in dsn[:j] support : in username
+							for k = j - 1; k >= 0; k-- {
+								if dsn[k] == ':' {
+									cfg.Passwd = dsn[k+1 : j]
+									break
+								}
 							}
 						}
 						cfg.User = dsn[:k]
@@ -659,4 +669,8 @@ func ensureHavePort(addr string) string {
 		return net.JoinHostPort(addr, "3306")
 	}
 	return addr
+}
+
+func allowUsernameWithColon() bool {
+	return strings.EqualFold(os.Getenv("MYSQL_USERNAME_COLON"), "true")
 }
